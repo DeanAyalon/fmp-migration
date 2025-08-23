@@ -1,0 +1,4 @@
+*.fmp12
+.env
+*.log
+*.pid
