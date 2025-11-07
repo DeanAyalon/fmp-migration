@@ -5,18 +5,23 @@
 # Context
 cd "$(dirname "$0")"
 [ -f .env ] && source .env
-# Validate
-if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
-    echo Credentials missing in .env
-    exit 1
-elif [ -z "$2" ]; then 
-    echo Please specify source and clone paths
-    exit 1
+
+if [ "$1" = "-h" ]; then
+    echo "Use $0 [solution]"
+    echo Migrates solution_prod.fmp12 using clone solution_dev.fmp12 into solution.fmp12
 fi
-[ -z "$SOLUTION" ] && SOLUTION=merged
+
+# Validate
+if [ -z "$SOLUTION" ] && [ -z "$1" ]; then
+    echo Solution missing in .env, alternatively input it as a parameter
+    echo "use $0 <solution>"
+fi
+
+read -p "Username: " USERNAME
+read -sp "Password: " PASSWORD
 
 # Migrate
-FMDataMigration -src_path "$1" -src_account $USERNAME -src_pwd $PASSWORD \
-    -clone_path "$2" -clone_account $USERNAME -clone_pwd $PASSWORD \
-    -target_path ./$SOLUTION.fmp12 -ignore_valuelists -ignore_accounts -v > migration.log
+FMDataMigration -src_path "${SOLUTION}_prod.fmp12" -src_account "$USERNAME" -src_pwd "$PASSWORD" \
+    -clone_path "${SOLUTION}_dev.fmp12" -clone_account "$USERNAME" -clone_pwd "$PASSWORD" \
+    -target_path "./$SOLUTION.fmp12" -ignore_valuelists -ignore_accounts -v > migration.log
 

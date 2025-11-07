@@ -1,4 +1,10 @@
-*.fmp12
+# Environment
 .env
+
+# FileMaker
+*.fmp12
 *.log
 *.pid
+
+# System files
+.DS_Store
