@@ -34,6 +34,7 @@ SOURCE_PATH="$DATABASES_PATH/$SOLUTION.fmp12"
 # Credentials prompt
 read -p "Username: " USERNAME
 read -sp "Password: " PASSWORD
+echo
 
 # Temporary folder inside container
 dir=/tmp/migration
@@ -49,8 +50,10 @@ docker exec $FMS_CONTAINER FMDataMigration \
     -clone_path "$dir/clone.fmp12" -clone_account "$USERNAME" -clone_pwd "$PASSWORD" \
     -target_path "$dir/$SOLUTION.fmp12" -ignore_valuelists -ignore_accounts -v | tee migration.log
 
+docker cp $FMS_CONTAINER:$dir/$SOLUTION.fmp12 .
+
 # Prompt to update live solution
-# TODO
+# TODO 
 
 # Unset from memory to be safe in case the script is sourced
 unset PASSWORD
