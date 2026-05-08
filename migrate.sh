@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 help() {
     echo "Use $0 <clone path> [migrated path]"
     echo
-    echo "  e.g. $0 ./solution_dev.fmp12 ./solution_migrated.fmp"
+    echo "  e.g. $0 ./solution_dev.fmp12 ./solution_migrated.fmp12"
     echo '  Migrates from source database \$SOLUTION using clone solution_dev.fmp12 into solution_migrated.fmp12'
     echo
     exit $1
@@ -26,6 +26,7 @@ fail() {
 migrated=${2:-migrated}
 [ -z "$FMS_CONTAINER" ] && FMS_CONTAINER=fms
 [ -z "$SOLUTION" ] && fail "Please set \$SOLUTION within .env"
+echo Migrating $SOLUTION using $1
 
 # source path
 [ -z "$DATABASES_PATH" ] && DATABASES_PATH="/opt/FileMaker/FileMaker Server/Data/Databases"
@@ -43,6 +44,9 @@ docker exec $FMS_CONTAINER mkdir -p $dir
 # Copy source and clone into container
 docker exec $FMS_CONTAINER cp "$SOURCE_PATH" $dir/source.fmp12
 docker cp "$1" $FMS_CONTAINER:$dir/clone.fmp12
+
+# Remove existing migrated solution
+docker exec $FMS_CONTAINER rm "$dir/$SOLUTION.fmp12"
 
 # Run migration inside container
 docker exec $FMS_CONTAINER FMDataMigration \
