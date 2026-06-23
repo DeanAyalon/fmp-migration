@@ -1,0 +1,33 @@
+---
+description: Plan files and prompt logs
+globs: .cursor/plans/**/*.md
+alwaysApply: false
+---
+
+# Plans
+When creating or materially updating a plan at `.cursor/plans/<name>.md`, also write `.cursor/plans/prompts/<name>.md` and link it from the plan: `Prompt log: [prompts/<name>.md](./prompts/<name>.md)`.
+
+Planned code must follow all other applicable rules (`architecture.mdc`, formatting rules, etc.) — treat it as commit-ready.
+
+## Prompt log — include (verbatim user text only)
+- The user's opening prompt, including file/line references as written
+- `**Q:**` / `**A:**` pairs for agent clarifications in that segment
+- Later user messages that add scope, details, constraints, or strategy decisions
+
+## Prompt log — exclude
+- Agent answers, summaries, plan text, code, and tool output
+- Formatting, tone, or structure requests
+- Implementation chatter unless the user changed requirements
+
+Redact secrets and credentials. Do not invent or paraphrase user text.
+
+## Prompt log — format
+- Title: `# Prompt log: <name>`
+- For each relevant user prompt segment:
+    - If not the first segment: two blank lines, then `---`
+    - If the user refers to a prior exchange: a blockquote before their text — e.g. `> approaches suggested:` with numbered items
+    - The user prompt (verbatim), including file/line references as written
+    - `**Q:**` / `**A:**` pairs for clarifications in that segment
+- Omit segments with no new requirement content
+
+Prompt log spacing overrides `md.mdc` blank-line rules.

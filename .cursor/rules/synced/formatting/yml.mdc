@@ -1,0 +1,8 @@
+---
+description: YAML formatting standards
+globs: **/*.yml,**/*.yaml
+alwaysApply: false
+---
+
+# YAML
+- 2 space indents

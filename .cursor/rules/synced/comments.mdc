@@ -1,0 +1,9 @@
+---
+description: Comment conventions when writing and editing code
+alwaysApply: true
+---
+
+# Code
+When editing existing files, do not remove comments — including inline, block, doc, and TODO comments. Leave them in place unless the user explicitly asks to remove or rewrite them. Do not drop comments while refactoring, reformatting, or "cleaning up" code.
+
+When generating new code, add comments to logical sections so the structure is easy to follow.

@@ -1,0 +1,11 @@
+---
+description: Markdown formatting standards
+globs: **/*.md,**/*.mdc
+alwaysApply: false
+---
+
+# Markdown
+- Do not add a blank line after headings — put the next paragraph, list, or code block directly under the heading
+- No need for periods at the end of bullet points
+- Prettify tables: pad cells so the `|` pipes align vertically across all rows
+- Prefer short fenced-code language tags (e.g. `ts` not `typescript`)

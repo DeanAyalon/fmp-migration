@@ -1,0 +1,8 @@
+---
+description: Shell scripting formatting standards (sh, bash, zsh, etc.)
+globs: **/*.sh,**/*.bash,**/*.zsh
+alwaysApply: false
+---
+
+# Shell
+- Use `$VAR`, not `${VAR}`. Only add braces when they're required: adjacent text (`${VAR}suffix`), parameter expansion (`${VAR:-default}`, `${VAR#prefix}`, `${#VAR}`), arrays (`${arr[0]}`), positional params past 9 (`${10}`)

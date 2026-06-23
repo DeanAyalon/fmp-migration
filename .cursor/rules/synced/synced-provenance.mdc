@@ -1,0 +1,14 @@
+---
+description: Synced rules are read-only in this project
+alwaysApply: true
+---
+
+# Synced rules (read-only)
+Files under `.cursor/rules/synced/` are copied from the [cursor-config](https://github.com/DeanAyalon/cursor-config) repository. Do not create, edit, rename, or delete them in this project.
+
+- To change shared standards: edit cursor-config and re-run sync
+- For codebase-specific guidance: add or edit files only under `.cursor/rules/project/`
+- For personal developer constraints: add or edit files only under `.cursor/rules/local/` (gitignored)
+
+## Precedence
+When guidance conflicts across tiers: **local** > **project** > **synced**

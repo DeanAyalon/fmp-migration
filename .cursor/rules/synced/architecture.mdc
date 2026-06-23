@@ -1,0 +1,33 @@
+---
+description: API type and enum architecture choices
+alwaysApply: true
+---
+
+# Architecture
+These rules apply to all code you produce, in any context — including code snippets inside plans, plan files (`.cursor/plans/*.md`), chat responses, and documentation.
+
+## Favor enums for opaque API codes
+When modeling external API fields whose wire values are opaque codes (numeric or string), use **enums** — not numeric/string literal unions.
+
+Readable code outweighs the small runtime footprint enums add. A type alias like `type DocType = 10 | 100 | 305` only type-checks JSON; it leaves magic numbers in application code.
+
+```ts
+// Prefer
+export enum DocType { TaxInvoice = 305, Receipt = 400 }
+const req = { type: [DocType.TaxInvoice] }
+
+// Avoid
+export type DocType = 10 | 100 | 305
+const req = { type: [305] }
+```
+
+Enums exist at runtime — use a **value import** when referencing members (`import * as Document from '...'`). `import type *` is fine for types only.
+
+## When not to use an enum
+- **Single fixed literal** with obvious meaning — inline it: `sort?: 'documentDate'`, `grant_type: 'client_credentials'`
+- **Multi-value unions used only for typing** (e.g. error codes on responses you never construct) — a union type is enough
+
+## External API type modules
+For third-party or generated API types, organize one concern per file:
+- **Short names inside the module** — `SearchRequest`, `DocType`, not prefixed duplicates like `DocumentSearchRequest`
+- **Namespace imports at call sites** — `import * as Document from '...'` then `Document.SearchRequest` (pairs with enum value imports above)

@@ -1,0 +1,12 @@
+---
+description: Formatting standards
+alwaysApply: true
+---
+**Read the rules in this directory before writing or editing any file. Apply every item below — no exceptions, no "close enough."**
+
+These rules apply to **all code you produce, in any context** — including code snippets inside plans, plan files (`.cursor/plans/*.md`), chat responses, and documentation. Planned code must adhere exactly as if it were being committed.
+
+Any rule here can be overridden by a language-specific rule in this directory.
+
+- 4 space indents (no tabs)
+- Add linebreak at the end of files, so the last line is empty

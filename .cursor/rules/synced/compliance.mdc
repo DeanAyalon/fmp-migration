@@ -1,0 +1,22 @@
+---
+description: Ensure applicable rules are loaded and followed
+alwaysApply: true
+---
+
+# Rule adherence
+Before editing any file:
+- Find the matching entries in the index below and read those rules, unless they are already in your context
+- Once per file type per session is enough — no need to re-read rules already loaded
+
+## Rule index
+Match on the code being produced, not just the file extension — snippets inside Markdown, plan files, and chat responses count:
+- Any JavaScript or TypeScript code → `./formatting/js-ts.mdc`
+- Markdown (`.md`, `.mdc`) → `./formatting/md.mdc`
+- Shell scripts or commands (sh, bash, zsh) → `./formatting/sh.mdc`
+- YAML → `./formatting/yml.mdc`
+- Plan files and prompt logs (`.cursor/plans/**/*.md`) → `./plans.mdc`
+
+When adding, removing, or re-scoping rules in the cursor-config repository, update this index there — not in a synced copy.
+
+After editing:
+- Re-read your diff and verify it adheres to every applicable rule; fix violations, only then perform your tests

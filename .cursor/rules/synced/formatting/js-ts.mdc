@@ -1,0 +1,103 @@
+---
+description: JavaScript/TypeScript formatting standards
+globs: **/*.js,**/*.ts,**/*.jsx,**/*.tsx,**/*.mjs,**/*.cjs
+alwaysApply: false
+---
+
+# Formatting
+If your diff introduces trailing commas, one-symbol-per-line imports, extra blank lines, or other violations listed here, fix them before finishing. Prettier defaults and habits from other projects do not apply here.
+
+- Single quotes for strings; double quotes only when a string contains a single quote and escaping is awkward
+- Do not add unnecessary line breaks; if the full statement is ≤100 characters and still readable, keep it on one line — enums, object literals (`const a = { a: 3, b: true }`), multi-line-style function calls, imports, etc; wrap only when long or readability suffers
+- **Imports and re-exports**: chain symbols on the same line — never one symbol per line. One line when it fits; if too long, split across more lines, still chaining multiple symbols per line
+- **Type imports**: when only one type is imported from a module, keep it inline in the value import (`import { getFoo, type Foo } from './foo'`) — do not split onto a separate `import type` line. Split types from values only when more than one type is needed: value import first, then `import type { … }` from the same module. Do not stack many `type` keywords in one import. Type-only imports use `import type` alone (no empty value import)
+- Omit explicit return types when TypeScript infers them; keep them only when the body does not establish the contract (stubs, exported generics, intentional widening)
+- Small single-statement functions: one line inside braces (`function foo() { return bar }`), or a concise arrow when it does not break functionality
+- Group related short statements without blank lines between them; use blank lines only between logical sections — not after every statement
+- Omit semicolons when not required
+- **No trailing commas** — not in objects, arrays, function params, destructuring, imports, or type lists. The last element before `}`, `]`, or `)` must never end with `,`
+- Arrow function bodies: no braces for single void statements
+- Single-statement if/for/while: omit braces, body on same line; `else` on its own line (required when the if branch has no braces)
+- **try/catch/finally**: one line when short and ≤100 characters (`try { load(); validate() } catch { handle(err) }`). Expand a clause when its body is long or readability suffers; `} catch {` and `} finally {` on the closing brace line is fine (same as `} else {`). No blank line between clauses
+- Wrapped if conditions: `(` stays on the `if` line, `)` on the last line of the condition — never alone on their own lines
+- Wrapped calls and expressions: closing `)` on the last line of the wrapped content — never `)` alone on its own line
+
+```ts
+// Good — values and types split; symbols chained per line
+import { getFoo, getBar } from './foo'
+import type { Foo, BarOptions, BazConfig } from './foo'
+import {
+    LOREM_ALPHA, LOREM_BETA, IPSUM_ONE, buildLoremRows, deleteFooCascade,
+    flattenBarItems, getDefaultIds, isLoremVisible
+} from './lorem-ipsum'
+import type { IpsumField, LoremRow, BarItem } from './lorem-ipsum'
+
+// Good — single inline type with values; do not split
+import { getFoo, type Foo } from './foo'
+
+// Bad — split when only one type
+import { getFoo } from './foo'
+import type { Foo } from './foo'
+
+// Bad — many inline types in one import
+import { getFoo, getBar, type Foo, type BarOptions, type BazConfig } from './foo'
+
+// Bad — one symbol per line
+import {
+    LOREM_ALPHA,
+    LOREM_BETA,
+    IPSUM_ONE
+} from './lorem-ipsum'
+
+// Good — no trailing comma
+const labels = { alpha: 'A', beta: 'B', gamma: 'C' }
+
+// Bad — trailing comma
+const labels = {
+    alpha: 'A',
+    beta: 'B',
+    gamma: 'C',
+}
+
+// Good — if conditions and line breaks
+if (key === A || key === B || key === C) doSomething()
+
+// Bad — if conditions
+if (
+    key === A ||
+    key === B
+)
+    doSomething()
+
+// Good — wrapped call
+const result = computeLorem(() =>
+    transformFoo(loadBar() ?? createDefaultLorem()))
+
+// Bad — closing paren alone
+const result = computeLorem(() =>
+    transformFoo(loadBar() ?? createDefaultLorem())
+)
+
+// Good — one line when short
+try { save() } catch { /* noop */ }
+try { load(); validate() } catch { handle(err) }
+
+// Good — expand when a clause is long
+try {
+    rows = await fetchRows(filter)
+    cache.set(key, rows)
+} catch { handle(err) }
+
+try { run() } catch {
+    logger.error('run failed', { err, jobId })
+    await notifyOps(err)
+}
+
+// Bad — blank line before catch
+try {
+    rows = await fetchRows(filter)
+    cache.set(key, rows)
+}
+
+catch { handle(err) }
+```
