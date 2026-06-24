@@ -30,3 +30,6 @@ be explicit about either mounting .aws or using aws credential env vars, not any
 
 ---
 the /authenticate endpoint is not used for authentication but for starting a migration process, hence, alter plan and name it accordingly
+
+---
+alter plan, dockerization should be next step (second)

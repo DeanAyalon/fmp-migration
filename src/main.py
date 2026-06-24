@@ -28,7 +28,7 @@ def main() -> None:
     uvicorn.run(
         "src.main:app",
         host="0.0.0.0",
-        port=settings.port,
+        port=8080,
         reload=True
     )
 

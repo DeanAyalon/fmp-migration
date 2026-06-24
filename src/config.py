@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     bucket: str
     solution: str
     fms_container: str
-    port: int = 8080
 
     # Optional — omit when ~/.aws is mounted; AWS CLI reads credentials from the mount.
     aws_access_key_id: str | None = None

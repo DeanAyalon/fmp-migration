@@ -5,6 +5,9 @@ todos:
   - id: scaffold
     content: "Create project skeleton: requirements.txt, .gitignore, example.env (not .env.example — see plan), src/ package — AWS creds documented as env vars OR mounted ~/.aws only"
     status: completed
+  - id: dockerization
+    content: Write Dockerfile (base/develop/production) with AWS CLI + docker CLI, and compose.yml with docker.sock mount, staging volume, develop watch
+    status: completed
   - id: config-auth
     content: Implement config.py (pydantic-settings) and auth.py (Bearer validation)
     status: pending
@@ -17,12 +20,6 @@ todos:
   - id: api
     content: Implement main.py with GET /health, POST /migrate, and migration-in-progress guard
     status: pending
-  - id: docker
-    content: Write Dockerfile (base/develop/production) with AWS CLI + docker CLI
-    status: pending
-  - id: compose
-    content: Write compose.yml with docker.sock mount, staging volume, develop watch
-    status: pending
 isProject: false
 ---
 
@@ -31,6 +28,15 @@ isProject: false
 Prompt log: [prompts/migration_http_service_298d7df6.md](./prompts/migration_http_service_298d7df6.md)
 
 Greenfield project — only [prompt.md](prompt.md) and Cursor config exist today. No code from other branches.
+
+## Implementation order
+
+1. **Scaffold** — project skeleton, `example.env`, empty `src/` package (done).
+2. **Dockerization** — [Dockerfile](Dockerfile) (`base` / `develop` / `production`) and [compose.yml](compose.yml) (docker.sock, staging volume, Compose Watch). Enables `docker compose watch` before application logic lands.
+3. **Config + auth** — [src/config.py](src/config.py), [src/auth.py](src/auth.py).
+4. **Pipeline** — [src/pipeline.py](src/pipeline.py) (S3 → staging → docker cp → stub exec).
+5. **AWS IAM README** — [docs/aws-iam.md](docs/aws-iam.md) (alongside or immediately after the S3 step).
+6. **API** — [src/main.py](src/main.py) (`GET /health`, `POST /migrate`, single-flight lock).
 
 ## Architecture
 
