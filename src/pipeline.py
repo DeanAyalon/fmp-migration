@@ -6,13 +6,11 @@ from pathlib import Path
 from src.config import Settings
 
 logger = logging.getLogger(__name__)
-
 STAGING_DIR = Path("staging")
 
 
 class PipelineError(Exception):
     """Raised when a migration pipeline step fails."""
-
     def __init__(self, step: str, detail: str) -> None:
         self.step = step
         self.detail = detail
@@ -24,8 +22,7 @@ def fms_exec_args() -> list[str]:
     return ["ls", "-la", "/tmp/migration"]
 
 
-def _clone_filename(solution: str) -> str:
-    return f"{solution}_clone.fmp12"
+def _clone_filename(solution: str) -> str: return f"{solution}_clone.fmp12"
 
 
 def _run_step(step: str, cmd: list[str]) -> None:
@@ -49,22 +46,15 @@ def _ensure_staging_dir() -> Path:
 def _download_from_s3(settings: Settings, local_path: Path) -> None:
     object_key = _clone_filename(settings.solution)
     s3_uri = f"s3://{settings.bucket}/{object_key}"
-    logger.info(
-        "[%s] downloading %s -> %s",
-        "s3_download",
-        s3_uri,
-        local_path,
-    )
+    logger.info("[%s] downloading %s -> %s", "s3_download", s3_uri, local_path)
     _run_step("s3_download", ["aws", "s3", "cp", s3_uri, str(local_path)])
     size_bytes = local_path.stat().st_size
     logger.info("[%s] saved %s bytes to %s", "s3_download", size_bytes, local_path)
 
 
 def _ensure_fms_migration_dir(container: str) -> None:
-    _run_step(
-        "docker_prepare",
-        ["docker", "exec", container, "mkdir", "-p", "/tmp/migration"],
-    )
+    _run_step("docker_prepare", ["docker", "exec", container, "mkdir", "-p", "/tmp/migration"])
+    _run_step("docker_prepare", ["docker", "exec", container, "rm", "/tmp/migration/clone.fmp12"])
 
 
 def _copy_to_container(settings: Settings, local_path: Path) -> None:
@@ -73,17 +63,13 @@ def _copy_to_container(settings: Settings, local_path: Path) -> None:
 
 
 def _remove_staging_clone(local_path: Path) -> None:
-    if not local_path.exists():
-        return
+    if not local_path.exists(): return
     local_path.unlink()
     logger.info("Removed staging clone: %s", local_path)
 
 
 def run_fms_migration(container: str) -> None:
-    _run_step(
-        "docker_exec",
-        ["docker", "exec", container, *fms_exec_args()],
-    )
+    _run_step("docker_exec", ["docker", "exec", container, *fms_exec_args()])
 
 
 def run_migration(settings: Settings) -> None:
@@ -93,12 +79,11 @@ def run_migration(settings: Settings) -> None:
         settings.solution,
         settings.bucket,
         clone_name,
-        settings.fms_container,
+        settings.fms_container
     )
 
     staging = _ensure_staging_dir()
     local_path = staging / clone_name
-
     succeeded = False
     try:
         _download_from_s3(settings, local_path)
@@ -106,9 +91,8 @@ def run_migration(settings: Settings) -> None:
         _copy_to_container(settings, local_path)
         run_fms_migration(settings.fms_container)
         succeeded = True
-    finally:
-        if not succeeded:
-            _remove_staging_clone(local_path)
+    finally: 
+        if not succeeded: _remove_staging_clone(local_path)
 
     logger.info("Migration completed successfully for solution=%s", settings.solution)
 
