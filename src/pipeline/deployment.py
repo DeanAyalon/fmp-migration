@@ -27,6 +27,5 @@ def reopen_if_needed(container: str, settings: Settings, db_was_closed: bool) ->
 
 def complete_deployment(container: str, settings: Settings, db_was_closed: bool) -> None:
     """Post-migration deployment: promote the migrated file and reopen the database."""
-
-    # deploy_migrated_db(container, settings)
+    deploy_migrated_db(container, settings)
     reopen_if_needed(container, settings, db_was_closed)

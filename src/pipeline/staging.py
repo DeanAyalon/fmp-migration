@@ -38,6 +38,7 @@ def ensure_fms_migration_dir(container: str, settings: Settings) -> None:
 def copy_to_container(settings: Settings, local_path: Path) -> None:
     dest = f"{settings.fms_container}:/tmp/migration/clone.fmp12"
     run_step("docker_cp", ["docker", "cp", str(local_path), dest])
+    remove_staging_clone(local_path)
 
 
 def remove_staging_clone(local_path: Path) -> None:
