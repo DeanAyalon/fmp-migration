@@ -24,3 +24,9 @@ If a migration is already running, additional requests will be blocked
 
 ---
 When creating the aws step, make a readme describing the iam creation and permissions, allow list files in bucket, avoid useless stuff like docker commands as I know those, just what I asked for
+
+---
+be explicit about either mounting .aws or using aws credential env vars, not anything else
+
+---
+the /authenticate endpoint is not used for authentication but for starting a migration process, hence, alter plan and name it accordingly

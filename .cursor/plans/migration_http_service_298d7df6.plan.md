@@ -1,10 +1,10 @@
 ---
 name: Migration HTTP Service
-overview: Greenfield Python HTTP service (single authenticated endpoint) that downloads a FileMaker clone from S3, copies it into an FMS container via the Docker socket, and runs a stubbed `docker exec` step you will define later. Fully dockerized with Compose Watch on a `develop` build target. Only one migration may run at a time; concurrent requests are rejected.
+overview: Greenfield Python HTTP service (single protected migration endpoint (POST /migrate)) that downloads a FileMaker clone from S3, copies it into an FMS container via the Docker socket, and runs a stubbed `docker exec` step you will define later. Fully dockerized with Compose Watch on a `develop` build target. Only one migration may run at a time; concurrent requests are rejected.
 todos:
   - id: scaffold
-    content: "Create project skeleton: requirements.txt, .gitignore, .env.example, src/ package"
-    status: pending
+    content: "Create project skeleton: requirements.txt, .gitignore, example.env (not .env.example — see plan), src/ package — AWS creds documented as env vars OR mounted ~/.aws only"
+    status: completed
   - id: config-auth
     content: Implement config.py (pydantic-settings) and auth.py (Bearer validation)
     status: pending
@@ -12,10 +12,10 @@ todos:
     content: "Implement pipeline.py: aws s3 cp → docker cp → stub docker exec"
     status: pending
   - id: aws-iam-readme
-    content: "Write docs/aws-iam.md — IAM user/role setup and least-privilege S3 policy (ListBucket + GetObject)"
+    content: Write docs/aws-iam.md — IAM user + access keys and least-privilege S3 policy (ListBucket + GetObject)
     status: pending
   - id: api
-    content: Implement main.py with GET /health, POST /authenticate, and migration-in-progress guard
+    content: Implement main.py with GET /health, POST /migrate, and migration-in-progress guard
     status: pending
   - id: docker
     content: Write Dockerfile (base/develop/production) with AWS CLI + docker CLI
@@ -42,7 +42,7 @@ sequenceDiagram
     participant Docker as docker_sock
     participant FMS as FMS_container
 
-    Client->>MigrationSvc: POST /authenticate Bearer token
+    Client->>MigrationSvc: POST /migrate Bearer token
     MigrationSvc->>MigrationSvc: validate AUTH_TOKEN
     alt migration already running
         MigrationSvc->>Client: 409 busy
@@ -63,11 +63,11 @@ sequenceDiagram
 migration/
 ├── compose.yml
 ├── Dockerfile
-├── .env.example
+├── example.env          # committed env template — NOT .env.example (see Env template file)
 ├── .gitignore
 ├── requirements.txt
 ├── docs/
-│   └── aws-iam.md       # IAM user/role setup + S3 policy (AWS only — no docker)
+│   └── aws-iam.md       # IAM user + access keys + S3 policy (AWS only — no docker)
 ├── src/
 │   ├── main.py          # FastAPI app, route, lifespan
 │   ├── config.py        # env loading + validation
@@ -80,7 +80,7 @@ migration/
 
 | Item | Choice |
 |------|--------|
-| Method / path | `POST /authenticate` |
+| Method / path | `POST /migrate` |
 | Auth | `Authorization: Bearer <AUTH_TOKEN>` (constant from `.env`) |
 | Request body | None (SOLUTION is env-driven) |
 | Success | `200` + `{ "status": "ok" }` |
@@ -92,13 +92,21 @@ Use **FastAPI** — minimal surface area, built-in dependency injection for auth
 
 ### Concurrency (single-flight)
 
-Only one migration may run at a time. If `POST /authenticate` arrives while a prior request is still executing the pipeline, reject it immediately — do not queue or start a second run.
+Only one migration may run at a time. If `POST /migrate` arrives while a prior request is still executing the pipeline, reject it immediately — do not queue or start a second run.
 
-In [src/main.py](src/main.py), hold an in-process `asyncio.Lock` (or equivalent) around the full `run_authenticate()` call. Check/acquire before starting the pipeline; release in a `finally` block so failures still unblock later requests. This is sufficient for v1 because the service runs as a single process under uvicorn.
+In [src/main.py](src/main.py), hold an in-process `asyncio.Lock` (or equivalent) around the full `run_migration()` call. Check/acquire before starting the pipeline; release in a `finally` block so failures still unblock later requests. This is sufficient for v1 because the service runs as a single process under uvicorn.
+
+## Env template file
+
+The committed env template is **[example.env](example.env)** — not `.env.example`.
+
+- **Runtime secrets** live in `.env` (gitignored); Compose uses `env_file: .env`.
+- **Do not create or restore `.env.example`.** That name is blocked by [.cursorignore](.cursorignore) (`**/*.env.*`), so agents cannot read it; `example.env` is explicitly allowed.
+- Local setup: `cp example.env .env` then fill in values.
 
 ## Environment variables
 
-Document in [.env.example](.env.example):
+Document in [example.env](example.env):
 
 | Variable | Purpose |
 |----------|---------|
@@ -106,8 +114,17 @@ Document in [.env.example](.env.example):
 | `BUCKET` | S3 bucket name (no `s3://` prefix) |
 | `SOLUTION` | Prefix for object key `{SOLUTION}_clone.fmp12` |
 | `FMS_CONTAINER` | Target container name or ID |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | Standard AWS CLI creds (or omit if host IAM/instance role is forwarded) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | AWS CLI creds via env vars — omit when using mounted `~/.aws` instead (see below) |
 | `PORT` | Default `8080` |
+
+### AWS credentials
+
+The AWS CLI needs credentials via **exactly one** of these — no instance profiles, task roles, or other chains:
+
+1. **Env vars** — set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` in `.env` (loaded by Compose).
+2. **Mounted `~/.aws`** — bind-mount the host directory (e.g. `~/.aws:/root/.aws:ro` in [compose.yml](compose.yml)); leave the three env vars empty.
+
+Document both options in [example.env](example.env). Optional AWS fields in [src/config.py](src/config.py) stay unset when using the mount.
 
 Load via `pydantic-settings` in [src/config.py](src/config.py); fail fast at startup if required vars are missing.
 
@@ -134,7 +151,7 @@ Run each step with `subprocess.run(..., check=True, capture_output=True, text=Tr
 
    Then: `docker exec <FMS_CONTAINER> <args...>`.
 
-Wrap the full pipeline in one `run_authenticate()` function; map `CalledProcessError` to step name + stderr for the HTTP error response.
+Wrap the full pipeline in one `run_migration()` function; map `CalledProcessError` to step name + stderr for the HTTP error response.
 
 When implementing the S3 step, also add [docs/aws-iam.md](docs/aws-iam.md) (see below).
 
@@ -145,7 +162,7 @@ Create this alongside the S3 pipeline step. **AWS/IAM only** — do not duplicat
 **Include**
 
 1. **Purpose** — one paragraph: dedicated IAM principal for the migration service to read clone files from a single bucket.
-2. **Principal choice** — IAM user with access keys (env vars in `.env`) vs IAM role (EC2 instance profile / ECS task role). Note which vars to set for each.
+2. **Principal** — dedicated IAM user with access keys. Keys go in `.env` (`AWS_ACCESS_KEY_ID`, etc.) or in `~/.aws/credentials` on the host when that directory is mounted into the container.
 3. **Policy** — least-privilege inline or managed custom policy. Required actions:
    - `s3:ListBucket` on `arn:aws:s3:::${BUCKET}` — list objects in the bucket (scoped with `s3:prefix` condition when practical)
    - `s3:GetObject` on `arn:aws:s3:::${BUCKET}/${SOLUTION}_clone.fmp12` — download the clone file
@@ -176,7 +193,7 @@ Create this alongside the S3 pipeline step. **AWS/IAM only** — do not duplicat
    }
    ```
 
-5. **Setup steps** — create policy → create user (or role) → attach policy → create access key (if user) → map `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` in `.env`.
+5. **Setup steps** — create policy → create IAM user → attach policy → create access key → either map `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` in `.env`, or place the same keys in `~/.aws/credentials` and mount `~/.aws`.
 6. **Verification** — `aws s3 ls s3://BUCKET_NAME/SOLUTION_PREFIX_clone.fmp12` and `aws s3 cp` dry-run or head-object check using the new principal's creds.
 
 **Exclude**
@@ -216,6 +233,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./staging:/app/staging
+      - ~/.aws:/root/.aws:ro   # omit when using AWS_* env vars instead
     develop:
       watch:
         - action: sync
@@ -228,22 +246,24 @@ services:
 **Notes**
 - `docker.sock` mount gives the service permission to `docker cp` / `docker exec` against containers on the **host** (including `FMS_CONTAINER` running outside this compose stack).
 - `./staging` bind-mount keeps downloaded `.fmp12` visible on the host for debugging and avoids re-downloading on container recreate if desired.
+- `~/.aws` mount is the alternative to `AWS_*` env vars — use one credential method, not both.
 - Run as root inside the container (default) — required for typical docker.sock access unless you map the host `docker` GID.
 
 ## Supporting files
 
 - **[requirements.txt](requirements.txt)** — `fastapi`, `uvicorn[standard]`, `pydantic-settings`
+- **[example.env](example.env)** — committed env template (`cp example.env .env`); **never** add `.env.example`
 - **[.gitignore](.gitignore)** — `.env`, `staging/`, `__pycache__/`, `.venv/`
 - **[docs/aws-iam.md](docs/aws-iam.md)** — IAM setup for S3 access (see AWS IAM README section)
 - **[src/auth.py](src/auth.py)** — FastAPI `Depends` that compares Bearer token to `config.auth_token` using `secrets.compare_digest`
-- **[src/main.py](src/main.py)** — `GET /health` (unauthenticated, for compose/orchestrator checks) + `POST /authenticate` with single-flight lock
+- **[src/main.py](src/main.py)** — `GET /health` (unauthenticated, for compose/orchestrator checks) + `POST /migrate` with single-flight lock
 
 ## Local dev workflow
 
 ```bash
-cp .env.example .env   # fill in values
+cp example.env .env    # fill in values (or mount ~/.aws and skip AWS_* vars)
 docker compose watch   # rebuild on requirements change, sync src on save
-curl -X POST http://localhost:8080/authenticate \
+curl -X POST http://localhost:8080/migrate \
   -H "Authorization: Bearer $AUTH_TOKEN"
 ```
 
@@ -257,9 +277,9 @@ curl -X POST http://localhost:8080/authenticate \
 
 ## Risks / assumptions
 
-- **FMS container must exist** and be reachable by the name in `FMS_CONTAINER` before calling `/authenticate`.
+- **FMS container must exist** and be reachable by the name in `FMS_CONTAINER` before calling `/migrate`.
 - **`/tmp/migration/`** must exist inside FMS container or `docker cp` parent path must be creatable — if not, add a preparatory `docker exec ... mkdir -p /tmp/migration` in the stub step.
-- **AWS credentials** must be available inside the migration container (env vars or mounted `~/.aws`); see [docs/aws-iam.md](docs/aws-iam.md) for required IAM permissions.
+- **AWS credentials** inside the migration container must come from **env vars or a mounted `~/.aws` directory only** — not instance profiles or task roles; see [docs/aws-iam.md](docs/aws-iam.md) for IAM user setup.
 - **Large `.fmp12` files** — synchronous request may time out; acceptable for v1; can move to background job later if needed.
 - **Concurrent callers** — second and later requests while a migration is in flight receive `409`; clients should retry after the in-progress run finishes.
 
