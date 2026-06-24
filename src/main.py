@@ -38,10 +38,10 @@ async def migrate(settings: Settings = Depends(get_settings)):
         logger.warning("Migration request rejected: another run is in progress")
         return JSONResponse(status_code=409, content={"status": "busy"})
 
-    async with _migration_lock:
+    await _migration_lock.acquire()
+    try:
         logger.info("Migration request accepted for solution=%s", settings.solution)
-        try:
-            await asyncio.to_thread(run_migration, settings)
+        try: await asyncio.to_thread(run_migration, settings)
         except PipelineError as exc:
             logger.error("Migration failed at step=%s: %s", exc.step, exc.detail)
             return JSONResponse(
@@ -51,11 +51,11 @@ async def migrate(settings: Settings = Depends(get_settings)):
 
         logger.info("Migration request finished successfully for solution=%s", settings.solution)
         return {"status": "ok"}
+    finally: _migration_lock.release()
 
 
 # Entrypoint
 def main() -> None:
-    settings = get_settings()
     uvicorn.run(
         "src.main:app",
         host="0.0.0.0",
