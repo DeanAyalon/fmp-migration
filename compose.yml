@@ -1,5 +1,7 @@
 services:
   migration:
+    image: deanayalon/fms-migration
+    container_name: fms-migration
     build:
       context: .
       target: develop

@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: pipeline
     content: "Implement pipeline.py: aws s3 cp → docker cp → stub docker exec"
-    status: pending
+    status: completed
   - id: aws-iam-readme
     content: Write docs/aws-iam.md — IAM user + access keys and least-privilege S3 policy (ListBucket + GetObject)
     status: pending
