@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: config-auth
     content: Implement config.py (pydantic-settings) and auth.py (Bearer validation)
-    status: pending
+    status: completed
   - id: pipeline
     content: "Implement pipeline.py: aws s3 cp → docker cp → stub docker exec"
     status: pending
