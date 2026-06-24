@@ -24,6 +24,9 @@ def _configure_logging() -> None:
 
 _configure_logging()
 
+# Fail fast if required env vars are missing or empty.
+get_settings()
+
 app = FastAPI()
 _migration_lock = asyncio.Lock()
 

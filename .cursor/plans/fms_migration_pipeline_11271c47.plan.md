@@ -4,13 +4,13 @@ overview: "Implement the full in-container migration workflow in `run_fms_migrat
 todos:
   - id: config-fms-auth
     content: Add fms_admin_user and fms_admin_password to Settings and example.env
-    status: pending
+    status: completed
   - id: pipeline-helpers
     content: Add path helpers, _fmsadmin, _docker_sh, hosted check, close/open helpers
-    status: pending
+    status: completed
   - id: run-fms-migration
     content: Implement full run_fms_migration flow with placeholder tool and failure recovery
-    status: pending
+    status: completed
   - id: docker-prepare-cleanup
     content: Extend _ensure_fms_migration_dir to rm clone, source, and SOLUTION.fmp12
     status: pending
