@@ -8,7 +8,7 @@ from uvicorn.logging import DefaultFormatter
 
 from src.auth import verify_bearer_token
 from src.config import Settings, get_settings
-from src.pipeline import PipelineError, run_migration
+from src.pipeline import PipelineError, run_upgrade
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ _configure_logging()
 get_settings()
 
 app = FastAPI()
-_migration_lock = asyncio.Lock()
+_upgrade_lock = asyncio.Lock()
 
 
 @app.get("/health")
@@ -37,24 +37,24 @@ def health() -> dict[str, str]: return {"status": "ok"}
 
 @app.post("/migrate", dependencies=[Depends(verify_bearer_token)], response_model=None)
 async def migrate(settings: Settings = Depends(get_settings)):
-    if _migration_lock.locked():
-        logger.warning("Migration request rejected: another run is in progress")
+    if _upgrade_lock.locked():
+        logger.warning("Upgrade request rejected: another run is in progress")
         return JSONResponse(status_code=409, content={"status": "busy"})
 
-    await _migration_lock.acquire()
+    await _upgrade_lock.acquire()
     try:
-        logger.info("Migration request accepted for solution=%s", settings.solution)
-        try: await asyncio.to_thread(run_migration, settings)
+        logger.info("Upgrade request accepted for solution=%s", settings.solution)
+        try: await asyncio.to_thread(run_upgrade, settings)
         except PipelineError as exc:
-            logger.error("Migration failed at step=%s: %s", exc.step, exc.detail)
+            logger.error("Upgrade failed at step=%s: %s", exc.step, exc.detail)
             return JSONResponse(
                 status_code=502,
                 content={"status": "error", "step": exc.step, "detail": exc.detail},
             )
 
-        logger.info("Migration request finished successfully for solution=%s", settings.solution)
+        logger.info("Upgrade request finished successfully for solution=%s", settings.solution)
         return {"status": "ok"}
-    finally: _migration_lock.release()
+    finally: _upgrade_lock.release()
 
 
 # Entrypoint
