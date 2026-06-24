@@ -342,6 +342,12 @@ def _deploy_migrated_db(container: str, settings: Settings) -> None:
 
 
 def _cleanup_migration_artifacts(container: str, settings: Settings) -> None:
+    """Remove transient migration files from the FMS container (best-effort).
+
+    Deletes clone.fmp12 and the migration tool output ({solution}.fmp12) only.
+    Does not remove source.fmp12 — that copy of the live DB is kept for recovery
+    and debugging after a failed run."""
+    
     paths = _migration_paths(settings.solution)
     script = f"rm -f {shlex.quote(paths['clone'])} {shlex.quote(paths['output'])}"
     try:
@@ -364,9 +370,16 @@ def _download_from_s3(settings: Settings, local_path: Path) -> None:
     size_bytes = local_path.stat().st_size
     logger.info("[%s] saved %s bytes to %s", "s3_download", size_bytes, local_path)
 
-def _ensure_fms_migration_dir(container: str) -> None:
-    _run_step("docker_prepare", ["docker", "exec", container, "mkdir", "-p", "/tmp/migration"])
-    _run_step("docker_prepare", ["docker", "exec", container, "rm", "-f", "/tmp/migration/clone.fmp12", "/tmp/migration/source.fmp12"])
+def _ensure_fms_migration_dir(container: str, settings: Settings) -> None:
+    paths = _migration_paths(settings.solution)
+    _run_step("docker_prepare", ["docker", "exec", container, "mkdir", "-p", paths["dir"]])
+    _run_step(
+        "docker_prepare",
+        [
+            "docker", "exec", container, "rm", "-f",
+            paths["clone"], paths["source"], paths["output"],
+        ],
+    )
 
 
 def _copy_to_container(settings: Settings, local_path: Path) -> None:
@@ -412,14 +425,17 @@ def run_migration(settings: Settings) -> None:
     staging = _ensure_staging_dir()
     local_path = staging / clone_name
     succeeded = False
+    container = settings.fms_container
     try:
         _download_from_s3(settings, local_path)
-        _ensure_fms_migration_dir(settings.fms_container)
+        _ensure_fms_migration_dir(container, settings)
         _copy_to_container(settings, local_path)
         run_fms_migration(settings)
         succeeded = True
-    finally: 
-        if not succeeded: _remove_staging_clone(local_path)
+    finally:
+        if not succeeded:
+            _remove_staging_clone(local_path)
+            _cleanup_migration_artifacts(container, settings)
 
     logger.info("Migration completed successfully for solution=%s", settings.solution)
 
