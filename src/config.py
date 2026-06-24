@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 REQUIRED_FIELDS = (
     "auth_token", "bucket", "solution",
     "fms_container", "fms_admin_user", "fms_admin_password",
+    "fm_account", "fm_password",
 )
 
 
@@ -23,6 +24,8 @@ class Settings(BaseSettings):
     fms_container: str
     fms_admin_user: str
     fms_admin_password: str
+    fm_account: str
+    fm_password: str
 
     # Optional — omit when ~/.aws is mounted; AWS CLI reads credentials from the mount.
     aws_access_key_id: str | None = None

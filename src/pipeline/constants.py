@@ -4,7 +4,7 @@ from pathlib import Path
 STAGING_DIR = Path("staging")
 
 # Command logging
-_SENSITIVE_FLAGS = frozenset({"-p", "--password"})
+_SENSITIVE_FLAGS = frozenset({"-p", "--password", "-src_pwd", "-clone_pwd"})
 
 # FMS database status
 _OPEN_STATUSES = frozenset({"Normal", "Opening"})
